@@ -1,3 +1,4 @@
+use core::num::NonZeroU16;
 use std::borrow::{Borrow, BorrowMut};
 use std::cmp;
 use std::convert::TryFrom;
@@ -35,7 +36,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 #[repr(C)]
 pub struct ArrayString<const CAP: usize> {
     // the `len` first elements of the array are initialized
-    len: LenUint,
+    len: NonZeroU16,
     xs: [MaybeUninit<u8>; CAP],
 }
 
@@ -64,7 +65,7 @@ impl<const CAP: usize> ArrayString<CAP> {
         unsafe {
             ArrayString {
                 xs: MaybeUninit::uninit().assume_init(),
-                len: 0,
+                len: NonZeroU16::new(1).unwrap(),
             }
         }
     }
@@ -82,14 +83,14 @@ impl<const CAP: usize> ArrayString<CAP> {
         assert_capacity_limit_const!(CAP);
         ArrayString {
             xs: MakeMaybeUninit::ARRAY,
-            len: 0,
+            len: NonZeroU16::new(1).unwrap(),
         }
     }
 
     /// Return the length of the string.
     #[inline]
     pub const fn len(&self) -> usize {
-        self.len as usize
+        self.len.get() as usize
     }
 
     /// Returns whether the string is empty.
@@ -156,7 +157,7 @@ impl<const CAP: usize> ArrayString<CAP> {
         unsafe {
             ArrayString {
                 xs: MaybeUninit::zeroed().assume_init(),
-                len: CAP as _,
+                len: NonZeroU16::new(CAP as u16).unwrap(),
             }
         }
     }
@@ -412,7 +413,7 @@ impl<const CAP: usize> ArrayString<CAP> {
     pub unsafe fn set_len(&mut self, length: usize) {
         // type invariant that capacity always fits in LenUint
         debug_assert!(length <= self.capacity());
-        self.len = length as LenUint;
+        self.len = NonZeroU16::new(length as u16).unwrap();
     }
 
     /// Return a string slice of the whole `ArrayString`.
